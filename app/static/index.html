@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HireIQ</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="site-header">
+        <a class="brand" href="/">
+          <span class="brand-mark">HI</span>
+          <span class="brand-text">HireIQ</span>
+        </a>
+        <nav class="site-nav" aria-label="Primary">
+          <a href="#features">Features</a>
+          <a href="#command-center">Demo</a>
+          <a href="#activity-section">Activity</a>
+        </nav>
+        <a class="header-cta" href="#command-center">Launch Demo</a>
+      </header>
+
+      <main>
+        <section class="hero-section">
+          <div class="hero-copy">
+            <p class="eyebrow">Recruiting Operating System</p>
+            <h1>From hiring brief to signed offer in one AI-native recruiting product.</h1>
+            <p class="hero-text">
+              HireIQ gives teams a SaaS-style recruiting command center powered by Claude and Notion
+              MCP. Stand up the workspace, publish polished jobs, screen candidates against live
+              requirements, and generate offer letters from one place.
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#command-center">Try the live command center</a>
+              <a class="button button-secondary" href="#features">See the product flow</a>
+            </div>
+            <div class="hero-proof">
+              <span>Claude Sonnet 4</span>
+              <span>Notion MCP attached</span>
+              <span>FastAPI backend</span>
+            </div>
+          </div>
+
+          <section class="hero-visual frame">
+            <div class="visual-topline">
+              <span class="visual-pill">AI screening engine</span>
+              <span class="visual-pill">Offer generation</span>
+            </div>
+
+            <div class="visual-grid">
+              <article class="product-window window-jobs">
+                <p class="window-label">Jobs Database</p>
+                <h2>Senior AI Engineer</h2>
+                <ul>
+                  <li>Headcount: 2</li>
+                  <li>Status: Open</li>
+                  <li>Department: Engineering</li>
+                </ul>
+              </article>
+
+              <article class="product-window window-score">
+                <p class="window-label">Candidate Fit</p>
+                <div class="score-ring">
+                  <strong>8.6</strong>
+                  <span>/ 10</span>
+                </div>
+                <p class="window-note">Strengths in LLM evaluation, backend systems, and shipping velocity.</p>
+              </article>
+
+              <article class="product-window window-offer">
+                <p class="window-label">Offer Draft</p>
+                <h3>Prepared for signature</h3>
+                <p class="window-note">
+                  Base salary, start date, reporting line, and candidate context are assembled into a
+                  clean Notion letter automatically.
+                </p>
+              </article>
+            </div>
+          </section>
+        </section>
+
+        <section class="metrics-strip frame">
+          <article>
+            <strong>4</strong>
+            <span>core recruiting workflows in one surface</span>
+          </article>
+          <article>
+            <strong>1-10</strong>
+            <span>fit scoring aligned to the job record</span>
+          </article>
+          <article>
+            <strong>Live</strong>
+            <span>pipeline counts pulled from operational logs</span>
+          </article>
+          <article>
+            <strong>Notion</strong>
+            <span>workspace-first execution through MCP</span>
+          </article>
+        </section>
+
+        <section class="feature-section" id="features">
+          <div class="section-copy">
+            <p class="eyebrow muted">Product flow</p>
+            <h2>A SaaS landing page on the outside, a working recruiting engine underneath.</h2>
+            <p>
+              The experience now leads like a product homepage: clear positioning, proof, and visual
+              hierarchy first. The interactive command center stays embedded below so the page still does
+              real work.
+            </p>
+          </div>
+
+          <div class="feature-grid">
+            <article class="feature-card">
+              <span class="feature-index">01</span>
+              <h3>Provision the workspace</h3>
+              <p>Create the hub, jobs, candidates, and interviews structure inside Notion with one action.</p>
+            </article>
+            <article class="feature-card">
+              <span class="feature-index">02</span>
+              <h3>Turn a brief into a real JD</h3>
+              <p>Generate polished responsibilities, requirements, and nice-to-haves directly in the job record.</p>
+            </article>
+            <article class="feature-card">
+              <span class="feature-index">03</span>
+              <h3>Score candidates with context</h3>
+              <p>Read the actual job from Notion, compare it to the resume, and write structured screening notes.</p>
+            </article>
+            <article class="feature-card">
+              <span class="feature-index">04</span>
+              <h3>Close with a clean offer</h3>
+              <p>Generate a professional offer letter in Notion and move the candidate to Offer automatically.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="story-panel frame">
+          <div class="story-copy">
+            <p class="eyebrow muted">Why it works</p>
+            <h2>Designed like a product teams would actually want to open.</h2>
+            <p>
+              We’ve shifted away from the “internal admin dashboard” look. The page now behaves like a
+              polished SaaS marketing surface with a live product demo built into the same experience.
+            </p>
+          </div>
+          <div class="story-list">
+            <div>
+              <p class="story-title">Clear narrative</p>
+              <p>Hero, proof, features, and demo are sequenced like a real product site.</p>
+            </div>
+            <div>
+              <p class="story-title">Consistent theme</p>
+              <p>Signal Glass uses crisp gradients, glass panels, and electric cyan accents without falling into generic startup purple.</p>
+            </div>
+            <div>
+              <p class="story-title">Still functional</p>
+              <p>The same endpoints, form IDs, and backend wiring remain in place under the redesign.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="command-section" id="command-center">
+          <div class="section-copy">
+            <p class="eyebrow muted">Live demo</p>
+            <h2>Operate the recruiting pipeline directly from the landing page.</h2>
+            <p>
+              This section is the product in motion: forms on the right, live pipeline and telemetry on
+              the left. It keeps the SaaS feel while remaining fully usable.
+            </p>
+          </div>
+
+          <div class="command-layout">
+            <aside class="frame control-rail">
+              <div class="rail-header">
+                <div>
+                  <p class="eyebrow muted">Pipeline</p>
+                  <h3>Live hiring motion</h3>
+                </div>
+                <button id="refreshLogsButton" class="ghost-button" type="button">Refresh activity</button>
+              </div>
+              <div class="pipeline" id="pipeline"></div>
+              <p class="rail-note">
+                Candidate counts are derived from backend log output after each successful action.
+              </p>
+            </aside>
+
+            <div class="workspace-grid">
+              <section class="card accent-ice">
+                <div class="card-topline">
+                  <p class="step">01</p>
+                  <span class="step-tag">Workspace</span>
+                </div>
+                <div class="card-header">
+                  <div>
+                    <h3>Setup Notion Workspace</h3>
+                    <p>Create the hub page plus Jobs, Candidates, and Interviews databases.</p>
+                  </div>
+                </div>
+                <form id="setupForm" class="stack">
+                  <label>
+                    Workspace name
+                    <input name="workspace_name" type="text" value="HireIQ Recruiting Hub" />
+                  </label>
+                  <button type="submit">Initialize workspace</button>
+                </form>
+                <pre class="result" id="setupResult">No run yet.</pre>
+              </section>
+
+              <section class="card accent-mint">
+                <div class="card-topline">
+                  <p class="step">02</p>
+                  <span class="step-tag">Requisition</span>
+                </div>
+                <div class="card-header">
+                  <div>
+                    <h3>Add Job</h3>
+                    <p>Open a role and expand a rough brief into a recruiter-ready job description.</p>
+                  </div>
+                </div>
+                <form id="jobForm" class="stack">
+                  <label>
+                    Title
+                    <input name="title" type="text" placeholder="Senior AI Engineer" required />
+                  </label>
+                  <label>
+                    Department
+                    <input name="department" type="text" placeholder="Engineering" required />
+                  </label>
+                  <label>
+                    Headcount
+                    <input name="headcount" type="number" min="1" step="1" value="1" required />
+                  </label>
+                  <label>
+                    Job brief
+                    <textarea
+                      name="description"
+                      rows="7"
+                      placeholder="Describe the role, scope, level, and hiring priorities."
+                      required
+                    ></textarea>
+                  </label>
+                  <button type="submit">Create requisition</button>
+                </form>
+                <pre class="result" id="jobResult">No run yet.</pre>
+              </section>
+
+              <section class="card accent-sun">
+                <div class="card-topline">
+                  <p class="step">03</p>
+                  <span class="step-tag">Screening</span>
+                </div>
+                <div class="card-header">
+                  <div>
+                    <h3>Screen Candidate</h3>
+                    <p>Compare a resume against the live role and write AI screening notes with a fit score.</p>
+                  </div>
+                </div>
+                <form id="candidateForm" class="stack">
+                  <label>
+                    Candidate name
+                    <input name="name" type="text" placeholder="Jane Doe" required />
+                  </label>
+                  <label>
+                    Email
+                    <input name="email" type="email" placeholder="jane@example.com" required />
+                  </label>
+                  <label>
+                    Job title
+                    <input name="job_title" type="text" placeholder="Senior AI Engineer" required />
+                  </label>
+                  <label>
+                    Resume text
+                    <textarea
+                      name="resume_text"
+                      rows="9"
+                      placeholder="Paste the candidate resume or profile summary."
+                      required
+                    ></textarea>
+                  </label>
+                  <button type="submit">Run screen</button>
+                </form>
+                <pre class="result" id="candidateResult">No run yet.</pre>
+              </section>
+
+              <section class="card accent-coral">
+                <div class="card-topline">
+                  <p class="step">04</p>
+                  <span class="step-tag">Offer</span>
+                </div>
+                <div class="card-header">
+                  <div>
+                    <h3>Generate Offer</h3>
+                    <p>Create a professional offer letter and advance the candidate to the final stage.</p>
+                  </div>
+                </div>
+                <form id="offerForm" class="stack">
+                  <label>
+                    Candidate name
+                    <input name="candidate_name" type="text" placeholder="Jane Doe" required />
+                  </label>
+                  <label>
+                    Job title
+                    <input name="job_title" type="text" placeholder="Senior AI Engineer" required />
+                  </label>
+                  <label>
+                    Salary
+                    <input name="salary" type="text" placeholder="$180,000 base" required />
+                  </label>
+                  <label>
+                    Start date
+                    <input name="start_date" type="date" required />
+                  </label>
+                  <button type="submit">Create offer letter</button>
+                </form>
+                <pre class="result" id="offerResult">No run yet.</pre>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <section class="frame activity-shell" id="activity-section">
+          <div class="activity-header">
+            <div>
+              <p class="eyebrow muted">Activity</p>
+              <h2>Operational log</h2>
+            </div>
+            <span class="token-note">Uses `claude-sonnet-4-20250514` with the beta header `mcp-client-2025-04-04`.</span>
+          </div>
+          <div id="activityLog" class="activity-log"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>
