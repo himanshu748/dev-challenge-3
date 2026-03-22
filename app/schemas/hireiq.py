@@ -44,9 +44,13 @@ class WorkspaceState(BaseModel):
     setup_complete: bool = False
     workspace_name: Optional[str] = None
     hub_page_url: Optional[str] = None
+    hub_page_id: Optional[str] = None
     jobs_database_url: Optional[str] = None
+    jobs_database_id: Optional[str] = None
     candidates_database_url: Optional[str] = None
+    candidates_database_id: Optional[str] = None
     interviews_database_url: Optional[str] = None
+    interviews_database_id: Optional[str] = None
     updated_at: Optional[datetime] = None
 
 

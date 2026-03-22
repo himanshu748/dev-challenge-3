@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import router
 from app.core.settings import get_settings
-from app.services.anthropic import AnthropicMCPClient, HireIQError
+from app.services.hf_mcp import HFMCPService, HireIQError
 from app.services.hireiq import HireIQService
 from app.services.runtime_store import RuntimeStore
 
@@ -20,21 +20,21 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 async def lifespan(app: FastAPI):
     settings = get_settings()
     runtime_store = RuntimeStore(settings.runtime_state_path)
-    anthropic_client = AnthropicMCPClient(settings)
+    hf_client = HFMCPService(settings)
     app.state.hireiq_service = HireIQService(
         settings=settings,
-        anthropic_client=anthropic_client,
+        hf_client=hf_client,
         runtime_store=runtime_store,
     )
     try:
         yield
     finally:
-        await anthropic_client.close()
+        await hf_client.close()
 
 
 app = FastAPI(
     title="HireIQ",
-    description="AI recruiting pipeline powered by Claude and Notion MCP.",
+    description="AI recruiting pipeline powered by HuggingFace and Notion MCP.",
     version="0.1.0",
     lifespan=lifespan,
 )

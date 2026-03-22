@@ -21,8 +21,17 @@ def get_hireiq_service(request: Request) -> HireIQService:
 
 
 @router.get("/health")
-async def health() -> dict[str, str]:
-    return {"status": "ok"}
+async def health(
+    service: HireIQService = Depends(get_hireiq_service),
+) -> dict:
+    mcp_ok = await service.hf_client.check_health()
+    return {
+        "status": "ok",
+        "hf_key": bool(service.settings.hf_api_key),
+        "notion_token": bool(service.settings.notion_token),
+        "parent_page_id": bool(service.settings.notion_parent_page_id),
+        "mcp_connected": mcp_ok,
+    }
 
 
 @router.get("/logs", response_model=LogsResponse)
