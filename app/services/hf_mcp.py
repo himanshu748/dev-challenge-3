@@ -194,14 +194,18 @@ class HFMCPService:
         title: str,
         properties: dict,
     ) -> dict:
-        """Create a Notion database via MCP API-post-database tool."""
+        """Create a Notion page representing a database (columns listed as content)."""
+        blocks = [_heading(title), _para("Records will be added as sub-pages.")]
+        blocks.append(_heading("Fields", 3))
+        for col_name in properties:
+            blocks.append(_bullet(col_name))
         result = await self.mcp_call(
             session,
-            "API-post-database",
+            "API-post-page",
             {
                 "parent": {"page_id": parent_id},
-                "title": _rt(title),
-                "properties": properties,
+                "properties": {"title": {"title": _rt(title)}},
+                "children": blocks[:100],
             },
         )
         if result.get("status") and result["status"] >= 400:
