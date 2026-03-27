@@ -56,7 +56,7 @@ class NotionHTTPFallback:
         async with httpx.AsyncClient(timeout=30) as c:
             if tool == "API-post-page":
                 r = await c.post(f"{NOTION_API}/pages", headers=self._h(), json=args)
-            elif tool == "API-post-database":
+            elif tool in ("API-post-database", "API-create-a-data-source"):
                 r = await c.post(f"{NOTION_API}/databases", headers=self._h(), json=args)
             elif tool == "API-post-search":
                 r = await c.post(f"{NOTION_API}/search", headers=self._h(), json=args)
@@ -77,8 +77,8 @@ class NotionHTTPFallback:
             elif tool == "API-retrieve-a-page":
                 pid = args.pop("page_id")
                 r = await c.get(f"{NOTION_API}/pages/{pid}", headers=self._h())
-            elif tool == "API-query-database":
-                dbid = args.pop("database_id")
+            elif tool in ("API-query-database", "API-query-data-source"):
+                dbid = args.pop("database_id", args.pop("data_source_id", None))
                 r = await c.post(
                     f"{NOTION_API}/databases/{dbid}/query",
                     headers=self._h(),
@@ -194,23 +194,25 @@ class HFMCPService:
         title: str,
         properties: dict,
     ) -> dict:
-        """Create a Notion page representing a database (columns listed as content)."""
-        blocks = [_heading(title), _para("Records will be added as sub-pages.")]
-        blocks.append(_heading("Fields", 3))
-        for col_name in properties:
-            blocks.append(_bullet(col_name))
-        result = await self.mcp_call(
-            session,
-            "API-post-page",
-            {
-                "parent": {"page_id": parent_id},
-                "properties": {"title": {"title": _rt(title)}},
-                "children": blocks[:100],
-            },
-        )
-        if result.get("status") and result["status"] >= 400:
+        """Create a real Notion database via direct REST API call."""
+        headers = {
+            "Authorization": f"Bearer {self.settings.notion_token}",
+            "Notion-Version": "2022-06-28",
+            "Content-Type": "application/json",
+        }
+        body = {
+            "parent": {"page_id": parent_id},
+            "title": _rt(title),
+            "properties": properties,
+        }
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.post(
+                f"{NOTION_API}/databases", headers=headers, json=body
+            )
+            result = r.json()
+        if r.status_code >= 400:
             raise HireIQError(
-                f"Notion MCP error: {result.get('message', str(result)[:200])}",
+                f"Notion API error: {result.get('message', str(result)[:200])}",
                 status_code=502,
             )
         return result
@@ -221,18 +223,24 @@ class HFMCPService:
         database_id: str,
         properties: dict,
     ) -> dict:
-        """Add a row to a Notion database (API-post-page with database parent)."""
-        result = await self.mcp_call(
-            session,
-            "API-post-page",
-            {
-                "parent": {"database_id": database_id},
-                "properties": properties,
-            },
-        )
-        if result.get("status") and result["status"] >= 400:
+        """Add a row to a Notion database via direct REST API."""
+        headers = {
+            "Authorization": f"Bearer {self.settings.notion_token}",
+            "Notion-Version": "2022-06-28",
+            "Content-Type": "application/json",
+        }
+        body = {
+            "parent": {"database_id": database_id},
+            "properties": properties,
+        }
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.post(
+                f"{NOTION_API}/pages", headers=headers, json=body
+            )
+            result = r.json()
+        if r.status_code >= 400:
             raise HireIQError(
-                f"Notion MCP error: {result.get('message', str(result)[:200])}",
+                f"Notion API error: {result.get('message', str(result)[:200])}",
                 status_code=502,
             )
         return result
@@ -250,11 +258,22 @@ class HFMCPService:
         database_id: str,
         filter_obj: dict | None = None,
     ) -> list:
-        """Query a Notion database."""
-        args: dict[str, Any] = {"database_id": database_id}
+        """Query a Notion database via direct REST API."""
+        headers = {
+            "Authorization": f"Bearer {self.settings.notion_token}",
+            "Notion-Version": "2022-06-28",
+            "Content-Type": "application/json",
+        }
+        body: dict[str, Any] = {}
         if filter_obj:
-            args["filter"] = filter_obj
-        result = await self.mcp_call(session, "API-query-database", args)
+            body["filter"] = filter_obj
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.post(
+                f"{NOTION_API}/databases/{database_id}/query",
+                headers=headers,
+                json=body,
+            )
+            result = r.json()
         return result.get("results", [])
 
     async def mcp_patch_page(

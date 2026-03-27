@@ -177,12 +177,7 @@ class HireIQService:
                 "📅 Interviews",
                 {
                     "Title": {"title": {}},
-                    "Candidate": {
-                        "relation": {
-                            "database_id": candidates_db_id,
-                            "single_property": {},
-                        }
-                    },
+                    "Candidate": {"rich_text": {}},
                     "Date": {"date": {}},
                     "Interviewer": {"rich_text": {}},
                     "Format": {"rich_text": {}},
