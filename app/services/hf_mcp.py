@@ -223,24 +223,18 @@ class HFMCPService:
         database_id: str,
         properties: dict,
     ) -> dict:
-        """Add a row to a Notion database via direct REST API."""
-        headers = {
-            "Authorization": f"Bearer {self.settings.notion_token}",
-            "Notion-Version": "2022-06-28",
-            "Content-Type": "application/json",
-        }
-        body = {
-            "parent": {"database_id": database_id},
-            "properties": properties,
-        }
-        async with httpx.AsyncClient(timeout=30) as client:
-            r = await client.post(
-                f"{NOTION_API}/pages", headers=headers, json=body
-            )
-            result = r.json()
-        if r.status_code >= 400:
+        """Add a row to a Notion database via MCP API-post-page."""
+        result = await self.mcp_call(
+            session,
+            "API-post-page",
+            {
+                "parent": {"database_id": database_id},
+                "properties": properties,
+            },
+        )
+        if result.get("status") and result["status"] >= 400:
             raise HireIQError(
-                f"Notion API error: {result.get('message', str(result)[:200])}",
+                f"Notion MCP error: {result.get('message', str(result)[:200])}",
                 status_code=502,
             )
         return result
@@ -258,7 +252,8 @@ class HFMCPService:
         database_id: str,
         filter_obj: dict | None = None,
     ) -> list:
-        """Query a Notion database via direct REST API."""
+        """Query a Notion database. Uses REST because MCP API-query-data-source
+        returns 404 on the current Notion MCP server version."""
         headers = {
             "Authorization": f"Bearer {self.settings.notion_token}",
             "Notion-Version": "2022-06-28",
