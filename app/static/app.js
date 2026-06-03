@@ -61,8 +61,11 @@ function renderActivity() {
     const row = document.createElement("div");
     row.className = "activity-item";
     row.dataset.operation = entry.operation || "system";
-    const timestamp = new Date(entry.timestamp).toLocaleString();
-    row.innerHTML = `<time>${timestamp}</time><p>${entry.message}</p>`;
+    const timestamp = document.createElement("time");
+    timestamp.textContent = new Date(entry.timestamp).toLocaleString();
+    const message = document.createElement("p");
+    message.textContent = entry.message || "";
+    row.append(timestamp, message);
     activityLog.appendChild(row);
   });
 }

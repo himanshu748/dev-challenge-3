@@ -10,6 +10,7 @@ from app.schemas.hireiq import (
     ScreenCandidateRequest,
     SetupRequest,
 )
+from app.services.hf_mcp import notion_transport_name
 from app.services.hireiq import HireIQService
 
 
@@ -31,6 +32,7 @@ async def health(
         "notion_token": bool(service.settings.notion_token),
         "parent_page_id": bool(service.settings.notion_parent_page_id),
         "mcp_connected": mcp_ok,
+        "notion_transport": notion_transport_name(),
     }
 
 

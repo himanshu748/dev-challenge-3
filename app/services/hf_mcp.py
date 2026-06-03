@@ -8,8 +8,14 @@ from typing import Any, Optional
 
 import httpx
 from huggingface_hub import InferenceClient
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
+
+try:
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+except ModuleNotFoundError:
+    ClientSession = None
+    StdioServerParameters = None
+    stdio_client = None
 
 from app.core.settings import Settings
 
@@ -89,6 +95,14 @@ class NotionHTTPFallback:
             return r.json()
 
 
+def mcp_package_available() -> bool:
+    return ClientSession is not None and StdioServerParameters is not None and stdio_client is not None
+
+
+def notion_transport_name() -> str:
+    return "mcp-stdio" if mcp_package_available() else "rest-fallback"
+
+
 # ─── Block builders ──────────────────────────────────────────────────────────
 
 
@@ -140,6 +154,15 @@ class HFMCPService:
     @asynccontextmanager
     async def notion_mcp(self):
         """Spin up Notion MCP stdio server and yield a ClientSession."""
+        if not self.settings.notion_token:
+            raise HireIQError(
+                "NOTION_TOKEN is not configured. Add it to .env before running Notion-backed workflows.",
+                status_code=400,
+            )
+        if not mcp_package_available():
+            log.warning("MCP package is unavailable; using Notion REST fallback.")
+            yield NotionHTTPFallback(self.settings.notion_token)
+            return
         params = StdioServerParameters(
             command="npx",
             args=["-y", "@notionhq/notion-mcp-server"],
@@ -283,10 +306,12 @@ class HFMCPService:
 
     async def check_health(self) -> bool:
         """Verify MCP connection with API-get-self."""
+        if not self.settings.notion_token:
+            return False
         try:
             async with self.notion_session() as mcp:
                 me = await self.mcp_call(mcp, "API-get-self", {})
-                return bool(me.get("id"))
+                return notion_transport_name() == "mcp-stdio" and bool(me.get("id"))
         except Exception:
             return False
 
@@ -296,6 +321,11 @@ class HFMCPService:
         self, system: str, user_msg: str, *, max_tokens: int = 4096
     ) -> str:
         """Generate text via HuggingFace InferenceClient (streaming)."""
+        if not self.settings.hf_api_key:
+            raise HireIQError(
+                "HF_API_KEY is not configured. Add it to .env before running AI-backed workflows.",
+                status_code=400,
+            )
         messages = [
             {"role": "system", "content": system},
             {"role": "user", "content": user_msg},

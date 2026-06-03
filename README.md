@@ -20,8 +20,11 @@ NOTION_PARENT_PAGE_ID=...
 ```
 
 Optional: set `HF_MODEL` to override the default model (`Qwen/Qwen2.5-72B-Instruct`).
+Optional: set `CORS_ORIGINS` to a comma-separated list of browser origins allowed to call the API. It defaults to local Uvicorn origins.
 
 Important: `NOTION_TOKEN` must be a current access token for the remote Notion MCP server at `https://mcp.notion.com/sse`. A plain Notion internal integration token is not enough for that remote MCP connection.
+
+The app can import and serve health/static routes without secrets. Provider-backed write routes return explicit configuration errors until the required keys are set. `/api/health` reports `notion_transport` so MCP stdio and REST fallback are not confused.
 
 ## Install and run
 
@@ -33,6 +36,13 @@ uvicorn app.main:app --reload
 ```
 
 Open [http://127.0.0.1:8000](http://127.0.0.1:8000).
+
+## Verify
+
+```bash
+python -m pytest
+python -m compileall app tests
+```
 
 ## API
 
@@ -54,5 +64,6 @@ Every write endpoint returns:
 ## Notes
 
 - The HuggingFace request uses model `Qwen/Qwen2.5-72B-Instruct` by default (configurable via `HF_MODEL` env var).
-- The app attaches Notion MCP via `https://mcp.notion.com/sse`.
+- The app prefers the Notion MCP package when available and falls back to direct Notion REST calls for supported operations.
 - Pipeline counts are tracked locally and surfaced in the UI from the backend log stream.
+- Keep `.env`, `.playwright-mcp/`, `data/runtime_state.json`, caches, and generated output out of git.

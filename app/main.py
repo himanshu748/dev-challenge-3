@@ -14,6 +14,7 @@ from app.services.runtime_store import RuntimeStore
 
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
+MAX_REQUEST_BODY_BYTES = 160_000
 
 
 @asynccontextmanager
@@ -41,14 +42,30 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=get_settings().cors_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
 app.include_router(router, prefix="/api")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+@app.middleware("http")
+async def reject_large_requests(request: Request, call_next):
+    if request.method in {"POST", "PUT", "PATCH"}:
+        content_length = request.headers.get("content-length")
+        try:
+            body_size = int(content_length) if content_length else 0
+        except ValueError:
+            body_size = MAX_REQUEST_BODY_BYTES + 1
+        if body_size > MAX_REQUEST_BODY_BYTES:
+            return JSONResponse(
+                status_code=413,
+                content={"detail": "Request body is too large."},
+            )
+    return await call_next(request)
 
 
 @app.exception_handler(HireIQError)

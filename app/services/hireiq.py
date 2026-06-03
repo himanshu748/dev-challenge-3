@@ -58,7 +58,6 @@ def _parse_json(raw: str) -> dict[str, Any]:
     raise HireIQError(
         "The model response could not be parsed into structured JSON.",
         status_code=502,
-        extra={"model_output": raw},
     )
 
 
@@ -66,6 +65,8 @@ def _parse_json(raw: str) -> dict[str, Any]:
 
 
 class HireIQService:
+    _extract_json = staticmethod(_parse_json)
+
     def __init__(
         self,
         *,
@@ -81,6 +82,11 @@ class HireIQService:
 
     async def setup_workspace(self, request: SetupRequest) -> OperationResponse:
         parent_id = self.settings.notion_parent_page_id
+        if not parent_id:
+            raise HireIQError(
+                "NOTION_PARENT_PAGE_ID is not configured. Add it to .env before setting up the workspace.",
+                status_code=400,
+            )
 
         # Step 1: HF generates workspace description
         prompt = dedent(
@@ -287,7 +293,6 @@ class HireIQService:
             raise HireIQError(
                 "The job was created, but its Notion URL was not returned.",
                 status_code=502,
-                extra={"model_output": hf_data},
             )
 
         log_output, pipeline_counts = self._record_logs(
@@ -401,7 +406,6 @@ class HireIQService:
             raise HireIQError(
                 "Candidate was screened, but their Notion URL was not returned.",
                 status_code=502,
-                extra={"model_output": hf_data},
             )
 
         self.runtime_store.upsert_candidate(
@@ -535,7 +539,6 @@ class HireIQService:
             raise HireIQError(
                 "Offer was generated, but Notion URLs were missing.",
                 status_code=502,
-                extra={"model_output": hf_data},
             )
 
         # Update runtime store
