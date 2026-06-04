@@ -123,6 +123,15 @@ def test_settings_accept_hf_token_alias(monkeypatch):
     assert settings.hf_api_key == "hf_test"
 
 
+def test_settings_accept_notion_api_key_alias(monkeypatch):
+    monkeypatch.delenv("NOTION_TOKEN", raising=False)
+    monkeypatch.setenv("NOTION_API_KEY", "ntn_test")
+
+    settings = Settings(_env_file=None)
+
+    assert settings.notion_token == "ntn_test"
+
+
 @pytest.mark.asyncio
 async def test_notion_mcp_uses_official_stdio_server(monkeypatch):
     monkeypatch.setattr(hf_mcp, "StdioServerParameters", FakeServerParameters)

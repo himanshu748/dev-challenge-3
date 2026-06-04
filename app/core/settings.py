@@ -13,7 +13,10 @@ class Settings(BaseSettings):
         default="",
         validation_alias=AliasChoices("HF_API_KEY", "HF_TOKEN"),
     )
-    notion_token: str = Field(default="", alias="NOTION_TOKEN")
+    notion_token: str = Field(
+        default="",
+        validation_alias=AliasChoices("NOTION_TOKEN", "NOTION_API_KEY"),
+    )
     notion_parent_page_id: str = Field(default="", alias="NOTION_PARENT_PAGE_ID")
 
     hf_model: str = "Qwen/Qwen2.5-72B-Instruct"
