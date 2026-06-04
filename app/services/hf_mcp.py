@@ -59,36 +59,37 @@ class NotionHTTPFallback:
         }
 
     async def call_tool(self, tool: str, args: dict) -> dict:
+        payload = dict(args)
         async with httpx.AsyncClient(timeout=30) as c:
             if tool == "API-post-page":
-                r = await c.post(f"{NOTION_API}/pages", headers=self._h(), json=args)
+                r = await c.post(f"{NOTION_API}/pages", headers=self._h(), json=payload)
             elif tool in ("API-post-database", "API-create-a-data-source"):
-                r = await c.post(f"{NOTION_API}/databases", headers=self._h(), json=args)
+                r = await c.post(f"{NOTION_API}/databases", headers=self._h(), json=payload)
             elif tool == "API-post-search":
-                r = await c.post(f"{NOTION_API}/search", headers=self._h(), json=args)
+                r = await c.post(f"{NOTION_API}/search", headers=self._h(), json=payload)
             elif tool == "API-get-block-children":
-                bid = args.pop("block_id")
+                bid = payload.pop("block_id")
                 r = await c.get(
                     f"{NOTION_API}/blocks/{bid}/children",
                     headers=self._h(),
-                    params=args,
+                    params=payload,
                 )
             elif tool == "API-get-self":
                 r = await c.get(f"{NOTION_API}/users/me", headers=self._h())
             elif tool == "API-patch-page":
-                pid = args.pop("page_id")
+                pid = payload.pop("page_id")
                 r = await c.patch(
-                    f"{NOTION_API}/pages/{pid}", headers=self._h(), json=args
+                    f"{NOTION_API}/pages/{pid}", headers=self._h(), json=payload
                 )
             elif tool == "API-retrieve-a-page":
-                pid = args.pop("page_id")
+                pid = payload.pop("page_id")
                 r = await c.get(f"{NOTION_API}/pages/{pid}", headers=self._h())
             elif tool in ("API-query-database", "API-query-data-source"):
-                dbid = args.pop("database_id", args.pop("data_source_id", None))
+                dbid = payload.pop("database_id", payload.pop("data_source_id", None))
                 r = await c.post(
                     f"{NOTION_API}/databases/{dbid}/query",
                     headers=self._h(),
-                    json=args,
+                    json=payload,
                 )
             else:
                 return {"error": f"Unknown tool: {tool}"}
