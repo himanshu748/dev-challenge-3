@@ -151,6 +151,31 @@ def notion_transport_name() -> str:
     return "mcp-stdio" if mcp_package_available() else "rest-fallback"
 
 
+def parse_mcp_tool_result(result: Any, tool: str) -> dict:
+    content = getattr(result, "content", None) or []
+    if not content:
+        return {}
+    text = getattr(content[0], "text", None)
+    if text is None:
+        raise HireIQError(
+            f"Notion MCP returned non-text content for {tool}.",
+            status_code=502,
+        )
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise HireIQError(
+            f"Notion MCP returned invalid JSON for {tool}.",
+            status_code=502,
+        ) from exc
+    if not isinstance(payload, dict):
+        raise HireIQError(
+            f"Notion MCP returned an unexpected payload shape for {tool}.",
+            status_code=502,
+        )
+    return payload
+
+
 # ─── Block builders ──────────────────────────────────────────────────────────
 
 
@@ -229,8 +254,7 @@ class HFMCPService:
         if isinstance(session, NotionHTTPFallback):
             return await session.call_tool(tool, args)
         result = await session.call_tool(tool, args)
-        text = result.content[0].text if result.content else "{}"
-        return json.loads(text)
+        return parse_mcp_tool_result(result, tool)
 
     # ── Notion helpers ───────────────────────────────────────────────────
 

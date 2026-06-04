@@ -190,6 +190,38 @@ async def test_notion_mcp_requires_token():
             pass
 
 
+def test_parse_mcp_tool_result_rejects_invalid_json():
+    result = SimpleNamespace(content=[SimpleNamespace(text="not json")])
+
+    with pytest.raises(hf_mcp.HireIQError) as exc_info:
+        hf_mcp.parse_mcp_tool_result(result, "API-get-self")
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail == "Notion MCP returned invalid JSON for API-get-self."
+
+
+def test_parse_mcp_tool_result_rejects_non_object_payload():
+    result = SimpleNamespace(content=[SimpleNamespace(text="[]")])
+
+    with pytest.raises(hf_mcp.HireIQError) as exc_info:
+        hf_mcp.parse_mcp_tool_result(result, "API-get-self")
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail == (
+        "Notion MCP returned an unexpected payload shape for API-get-self."
+    )
+
+
+def test_parse_mcp_tool_result_rejects_non_text_content():
+    result = SimpleNamespace(content=[SimpleNamespace(data={"id": "hireiq"})])
+
+    with pytest.raises(hf_mcp.HireIQError) as exc_info:
+        hf_mcp.parse_mcp_tool_result(result, "API-get-self")
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail == "Notion MCP returned non-text content for API-get-self."
+
+
 @pytest.mark.asyncio
 async def test_rest_fallback_does_not_mutate_tool_arguments(monkeypatch):
     FakeAsyncClient.instances = []
