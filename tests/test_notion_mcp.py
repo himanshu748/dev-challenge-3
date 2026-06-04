@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import httpx
 import pytest
 
 from app.core.settings import Settings
@@ -52,15 +53,36 @@ class FakeStdioClient:
 
 
 class FakeResponse:
-    def __init__(self, payload: dict) -> None:
+    def __init__(
+        self,
+        payload: dict | list | None,
+        *,
+        status_code: int = 200,
+        json_error: bool = False,
+    ) -> None:
         self.payload = payload
+        self.status_code = status_code
+        self.json_error = json_error
+
+    def raise_for_status(self) -> None:
+        if self.status_code >= 400:
+            request = httpx.Request("GET", "https://api.notion.com/v1/test")
+            response = httpx.Response(self.status_code, request=request)
+            raise httpx.HTTPStatusError(
+                "Notion error body with private details",
+                request=request,
+                response=response,
+            )
 
     def json(self) -> dict:
+        if self.json_error:
+            raise ValueError("not json")
         return self.payload
 
 
 class FakeAsyncClient:
     instances: list["FakeAsyncClient"] = []
+    next_response: FakeResponse | None = None
 
     def __init__(self, *, timeout: int) -> None:
         self.timeout = timeout
@@ -77,19 +99,28 @@ class FakeAsyncClient:
         self, url: str, *, headers: dict, params: dict | None = None
     ) -> FakeResponse:
         self.calls.append(("get", url, params, None))
-        return FakeResponse({"ok": True})
+        return self.next_response or FakeResponse({"ok": True})
 
     async def post(
         self, url: str, *, headers: dict, json: dict | None = None
     ) -> FakeResponse:
         self.calls.append(("post", url, None, json))
-        return FakeResponse({"ok": True})
+        return self.next_response or FakeResponse({"ok": True})
 
     async def patch(
         self, url: str, *, headers: dict, json: dict | None = None
     ) -> FakeResponse:
         self.calls.append(("patch", url, None, json))
-        return FakeResponse({"ok": True})
+        return self.next_response or FakeResponse({"ok": True})
+
+
+def test_settings_accept_hf_token_alias(monkeypatch):
+    monkeypatch.delenv("HF_API_KEY", raising=False)
+    monkeypatch.setenv("HF_TOKEN", "hf_test")
+
+    settings = Settings(_env_file=None)
+
+    assert settings.hf_api_key == "hf_test"
 
 
 @pytest.mark.asyncio
@@ -121,6 +152,7 @@ async def test_notion_mcp_requires_token():
 @pytest.mark.asyncio
 async def test_rest_fallback_does_not_mutate_tool_arguments(monkeypatch):
     FakeAsyncClient.instances = []
+    FakeAsyncClient.next_response = None
     monkeypatch.setattr(hf_mcp.httpx, "AsyncClient", FakeAsyncClient)
     fallback = hf_mcp.NotionHTTPFallback("ntn_test")
     args = {"data_source_id": "source_123", "filter": {"property": "Status"}}
@@ -139,3 +171,121 @@ async def test_rest_fallback_does_not_mutate_tool_arguments(monkeypatch):
             {"filter": {"property": "Status"}},
         )
     ]
+
+
+@pytest.mark.asyncio
+async def test_rest_fallback_prefers_database_id_without_mutating_data_source(monkeypatch):
+    FakeAsyncClient.instances = []
+    FakeAsyncClient.next_response = None
+    monkeypatch.setattr(hf_mcp.httpx, "AsyncClient", FakeAsyncClient)
+    fallback = hf_mcp.NotionHTTPFallback("ntn_test")
+    args = {
+        "database_id": "database_123",
+        "data_source_id": "source_123",
+        "page_size": 25,
+    }
+
+    result = await fallback.call_tool("API-query-database", args)
+
+    assert result == {"ok": True}
+    assert args == {
+        "database_id": "database_123",
+        "data_source_id": "source_123",
+        "page_size": 25,
+    }
+    client = FakeAsyncClient.instances[0]
+    assert client.calls == [
+        (
+            "post",
+            f"{hf_mcp.NOTION_API}/databases/database_123/query",
+            None,
+            {"data_source_id": "source_123", "page_size": 25},
+        )
+    ]
+
+
+@pytest.mark.asyncio
+async def test_rest_fallback_rejects_unknown_tools():
+    fallback = hf_mcp.NotionHTTPFallback("ntn_test")
+
+    with pytest.raises(hf_mcp.HireIQError) as exc_info:
+        await fallback.call_tool("API-delete-everything", {})
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.detail == "Unknown Notion tool: API-delete-everything."
+
+
+@pytest.mark.asyncio
+async def test_rest_fallback_requires_query_identifier():
+    fallback = hf_mcp.NotionHTTPFallback("ntn_test")
+
+    with pytest.raises(hf_mcp.HireIQError) as exc_info:
+        await fallback.call_tool("API-query-data-source", {"filter": {}})
+
+    assert exc_info.value.status_code == 500
+    assert "database_id or data_source_id" in exc_info.value.detail
+
+
+@pytest.mark.asyncio
+async def test_rest_fallback_raises_sanitized_http_errors(monkeypatch):
+    FakeAsyncClient.instances = []
+    FakeAsyncClient.next_response = FakeResponse({"error": "private"}, status_code=401)
+    monkeypatch.setattr(hf_mcp.httpx, "AsyncClient", FakeAsyncClient)
+    fallback = hf_mcp.NotionHTTPFallback("ntn_test")
+
+    with pytest.raises(hf_mcp.HireIQError) as exc_info:
+        await fallback.call_tool("API-get-self", {})
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail == "Notion REST request failed with HTTP 401."
+    assert "private" not in exc_info.value.detail
+    assert "ntn_test" not in exc_info.value.detail
+    FakeAsyncClient.next_response = None
+
+
+@pytest.mark.asyncio
+async def test_rest_fallback_rejects_invalid_json(monkeypatch):
+    FakeAsyncClient.instances = []
+    FakeAsyncClient.next_response = FakeResponse(None, json_error=True)
+    monkeypatch.setattr(hf_mcp.httpx, "AsyncClient", FakeAsyncClient)
+    fallback = hf_mcp.NotionHTTPFallback("ntn_test")
+
+    with pytest.raises(hf_mcp.HireIQError) as exc_info:
+        await fallback.call_tool("API-get-self", {})
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail == "Notion REST returned invalid JSON."
+    FakeAsyncClient.next_response = None
+
+
+@pytest.mark.asyncio
+async def test_rest_fallback_rejects_unexpected_payload_shape(monkeypatch):
+    FakeAsyncClient.instances = []
+    FakeAsyncClient.next_response = FakeResponse([])
+    monkeypatch.setattr(hf_mcp.httpx, "AsyncClient", FakeAsyncClient)
+    fallback = hf_mcp.NotionHTTPFallback("ntn_test")
+
+    with pytest.raises(hf_mcp.HireIQError) as exc_info:
+        await fallback.call_tool("API-get-self", {})
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail == "Notion REST returned an unexpected payload shape."
+    FakeAsyncClient.next_response = None
+
+
+@pytest.mark.asyncio
+async def test_database_query_raises_sanitized_http_errors(monkeypatch):
+    FakeAsyncClient.instances = []
+    FakeAsyncClient.next_response = FakeResponse({"error": "private"}, status_code=403)
+    monkeypatch.setattr(hf_mcp.httpx, "AsyncClient", FakeAsyncClient)
+    service = hf_mcp.HFMCPService(
+        Settings(_env_file=None, hf_api_key="hf_test", notion_token="ntn_test")
+    )
+
+    with pytest.raises(hf_mcp.HireIQError) as exc_info:
+        await service.mcp_query_database(None, "database_123")
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail == "Notion REST request failed with HTTP 403."
+    assert "private" not in exc_info.value.detail
+    FakeAsyncClient.next_response = None

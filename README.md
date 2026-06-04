@@ -14,17 +14,20 @@ HireIQ is a FastAPI recruiting assistant that uses a HuggingFace model with the 
 Create a `.env` file with:
 
 ```bash
-HF_API_KEY=hf_...
-NOTION_TOKEN=...
-NOTION_PARENT_PAGE_ID=...
+HF_API_KEY=
+NOTION_TOKEN=
+NOTION_PARENT_PAGE_ID=
 ```
 
+`HF_API_KEY` is the deployment variable; local runs may use `HF_TOKEN` as a fallback alias if it is already loaded in the process environment.
 Optional: set `HF_MODEL` to override the default model (`Qwen/Qwen2.5-72B-Instruct`).
 Optional: set `CORS_ORIGINS` to a comma-separated list of browser origins allowed to call the API. It defaults to local Uvicorn origins.
 
 Important: `NOTION_TOKEN` must be a current access token for the remote Notion MCP server at `https://mcp.notion.com/sse`. A plain Notion internal integration token is not enough for that remote MCP connection.
 
 The app can import and serve health/static routes without secrets. Provider-backed write routes return explicit configuration errors until the required keys are set. `/api/health` reports `notion_transport` so MCP stdio and REST fallback are not confused.
+
+If `NOTION_TOKEN` is not loaded, live Notion setup/job/screening/offer routes cannot be tested. The REST fallback raises sanitized errors for unsupported tools, missing Notion arguments, non-2xx Notion responses, or invalid Notion JSON.
 
 ## Install and run
 

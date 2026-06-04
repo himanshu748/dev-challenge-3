@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, field_validator
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -9,7 +9,10 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
-    hf_api_key: str = Field(default="", alias="HF_API_KEY")
+    hf_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("HF_API_KEY", "HF_TOKEN"),
+    )
     notion_token: str = Field(default="", alias="NOTION_TOKEN")
     notion_parent_page_id: str = Field(default="", alias="NOTION_PARENT_PAGE_ID")
 

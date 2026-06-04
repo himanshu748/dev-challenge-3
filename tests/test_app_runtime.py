@@ -12,6 +12,10 @@ from app.schemas.hireiq import SetupRequest
 
 
 def test_app_imports_and_serves_static_without_tokens(tmp_path, monkeypatch):
+    monkeypatch.delenv("HF_API_KEY", raising=False)
+    monkeypatch.delenv("HF_TOKEN", raising=False)
+    monkeypatch.delenv("NOTION_TOKEN", raising=False)
+    monkeypatch.delenv("NOTION_PARENT_PAGE_ID", raising=False)
     test_settings = Settings(
         _env_file=None,
         runtime_state_path=tmp_path / "runtime.json",
@@ -29,7 +33,12 @@ def test_app_imports_and_serves_static_without_tokens(tmp_path, monkeypatch):
     assert "HireIQ" in index.text
 
 
-def test_settings_load_without_provider_secrets():
+def test_settings_load_without_provider_secrets(monkeypatch):
+    monkeypatch.delenv("HF_API_KEY", raising=False)
+    monkeypatch.delenv("HF_TOKEN", raising=False)
+    monkeypatch.delenv("NOTION_TOKEN", raising=False)
+    monkeypatch.delenv("NOTION_PARENT_PAGE_ID", raising=False)
+
     settings = Settings(_env_file=None)
     assert settings.hf_api_key == ""
     assert settings.notion_token == ""
