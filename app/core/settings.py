@@ -1,7 +1,8 @@
+import os
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import AliasChoices, Field, field_validator
+from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -37,6 +38,28 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             return [origin.strip() for origin in value.split(",") if origin.strip()]
         return value
+
+    @field_validator(
+        "hf_api_key",
+        "notion_token",
+        "notion_parent_page_id",
+        "hf_model",
+        "notion_mcp_url",
+        mode="before",
+    )
+    @classmethod
+    def strip_string_values(cls, value: object) -> object:
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+    @model_validator(mode="after")
+    def apply_blank_primary_alias_fallbacks(self) -> "Settings":
+        if not self.hf_api_key:
+            self.hf_api_key = os.getenv("HF_TOKEN", "").strip()
+        if not self.notion_token:
+            self.notion_token = os.getenv("NOTION_API_KEY", "").strip()
+        return self
 
     model_config = SettingsConfigDict(
         env_file=".env",
