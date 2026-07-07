@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import router
 from app.core.settings import get_settings
-from app.services.hf_mcp import HFMCPService, HireIQError
+from app.services.hf_client import HFService, HireIQError
 from app.services.hireiq import HireIQService
 from app.services.runtime_store import RuntimeStore
 
@@ -21,7 +21,7 @@ MAX_REQUEST_BODY_BYTES = 160_000
 async def lifespan(app: FastAPI):
     settings = get_settings()
     runtime_store = RuntimeStore(settings.runtime_state_path)
-    hf_client = HFMCPService(settings)
+    hf_client = HFService(settings)
     app.state.hireiq_service = HireIQService(
         settings=settings,
         hf_client=hf_client,
@@ -35,8 +35,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="HireIQ",
-    description="AI recruiting pipeline powered by HuggingFace and Notion MCP.",
-    version="0.1.0",
+    description="AI recruiting pipeline powered by HuggingFace.",
+    version="0.2.0",
     lifespan=lifespan,
 )
 

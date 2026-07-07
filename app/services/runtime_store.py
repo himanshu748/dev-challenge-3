@@ -2,13 +2,20 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 from threading import Lock
-from typing import Optional
+from typing import Any, Optional
 
-from app.schemas.hireiq import CandidateState, RuntimeLogEntry, RuntimeState
+from app.schemas.hireiq import (
+    CandidateState,
+    JobState,
+    OfferState,
+    RuntimeLogEntry,
+    RuntimeState,
+)
 
 
 PIPELINE_STAGES = ("Applied", "Screening", "Interview", "Offer")
 LOG_LIMIT = 200
+OFFER_LIMIT = 100
 
 
 class RuntimeStore:
@@ -37,6 +44,36 @@ class RuntimeStore:
             self._write(state)
             return state
 
+    def upsert_job(
+        self,
+        *,
+        title: str,
+        department: str,
+        headcount: int,
+        jd: str,
+        highlights: Optional[dict[str, Any]] = None,
+        status: str = "Open",
+    ) -> JobState:
+        with self._lock:
+            state = self._read()
+            job = JobState(
+                title=title,
+                department=department,
+                headcount=headcount,
+                status=status,
+                jd=jd,
+                highlights=highlights or {},
+                updated_at=datetime.now(timezone.utc),
+            )
+            state.jobs[self._job_key(title)] = job
+            self._write(state)
+            return job
+
+    def find_job(self, *, title: str) -> Optional[JobState]:
+        with self._lock:
+            state = self._read()
+            return state.jobs.get(self._job_key(title))
+
     def upsert_candidate(
         self,
         *,
@@ -44,8 +81,9 @@ class RuntimeStore:
         email: str,
         job_title: str,
         stage: str,
-        notion_url: Optional[str] = None,
         score: Optional[int] = None,
+        resume_summary: str = "",
+        ai_notes: str = "",
     ) -> RuntimeState:
         with self._lock:
             state = self._read()
@@ -55,12 +93,41 @@ class RuntimeStore:
                 email=email,
                 job_title=job_title,
                 stage=stage,
-                notion_url=notion_url,
                 score=score,
+                resume_summary=resume_summary,
+                ai_notes=ai_notes,
                 updated_at=datetime.now(timezone.utc),
             )
             self._write(state)
             return state
+
+    def record_offer(
+        self,
+        *,
+        candidate_name: str,
+        job_title: str,
+        title: str,
+        letter_body: str,
+        key_terms: list[str],
+        salary: str,
+        start_date: str,
+    ) -> OfferState:
+        with self._lock:
+            state = self._read()
+            offer = OfferState(
+                candidate_name=candidate_name,
+                job_title=job_title,
+                title=title,
+                letter_body=letter_body,
+                key_terms=key_terms,
+                salary=salary,
+                start_date=start_date,
+                created_at=datetime.now(timezone.utc),
+            )
+            state.offers.append(offer)
+            state.offers = state.offers[-OFFER_LIMIT:]
+            self._write(state)
+            return offer
 
     def append_log(self, *, operation: str, message: str) -> RuntimeLogEntry:
         with self._lock:
@@ -91,6 +158,10 @@ class RuntimeStore:
             if candidate.stage in counts:
                 counts[candidate.stage] += 1
         return counts
+
+    @staticmethod
+    def _job_key(title: str) -> str:
+        return title.strip().lower()
 
     @staticmethod
     def _candidate_key(*, name: str, email: str, job_title: str) -> str:
