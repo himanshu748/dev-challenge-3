@@ -11,7 +11,6 @@ def test_runtime_store_updates_pipeline_counts(tmp_path):
         email="ada@example.com",
         job_title="AI Engineer",
         stage="Screening",
-        notion_url="https://notion.so/candidate",
         score=8,
     )
     snapshot = store.snapshot()

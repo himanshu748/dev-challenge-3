@@ -4,13 +4,14 @@ from fastapi import APIRouter, Depends, Request
 
 from app.schemas.hireiq import (
     AddJobRequest,
+    CandidatesResponse,
     GenerateOfferRequest,
+    JobsResponse,
     LogsResponse,
     OperationResponse,
     ScreenCandidateRequest,
     SetupRequest,
 )
-from app.services.hf_mcp import notion_transport_name
 from app.services.hireiq import HireIQService
 
 
@@ -25,20 +26,30 @@ def get_hireiq_service(request: Request) -> HireIQService:
 async def health(
     service: HireIQService = Depends(get_hireiq_service),
 ) -> dict:
-    mcp_ok = await service.hf_client.check_health()
     return {
         "status": "ok",
         "hf_key": bool(service.settings.hf_api_key),
-        "notion_token": bool(service.settings.notion_token),
-        "parent_page_id": bool(service.settings.notion_parent_page_id),
-        "mcp_connected": mcp_ok,
-        "notion_transport": notion_transport_name(),
+        "model": service.settings.hf_model,
     }
 
 
 @router.get("/logs", response_model=LogsResponse)
 async def get_logs(service: HireIQService = Depends(get_hireiq_service)) -> LogsResponse:
     return service.get_logs()
+
+
+@router.get("/candidates", response_model=CandidatesResponse)
+async def get_candidates(
+    service: HireIQService = Depends(get_hireiq_service),
+) -> CandidatesResponse:
+    return service.get_candidates()
+
+
+@router.get("/jobs", response_model=JobsResponse)
+async def get_jobs(
+    service: HireIQService = Depends(get_hireiq_service),
+) -> JobsResponse:
+    return service.get_jobs()
 
 
 @router.post("/setup", response_model=OperationResponse)

@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 PipelineStage = Literal["Applied", "Screening", "Interview", "Offer", "Rejected"]
+JobStatus = Literal["Open", "Closed"]
 
 
 class SetupRequest(BaseModel):
@@ -43,15 +44,17 @@ class GenerateOfferRequest(BaseModel):
 class WorkspaceState(BaseModel):
     setup_complete: bool = False
     workspace_name: Optional[str] = None
-    hub_page_url: Optional[str] = None
-    hub_page_id: Optional[str] = None
-    jobs_database_url: Optional[str] = None
-    jobs_database_id: Optional[str] = None
-    candidates_database_url: Optional[str] = None
-    candidates_database_id: Optional[str] = None
-    interviews_database_url: Optional[str] = None
-    interviews_database_id: Optional[str] = None
     updated_at: Optional[datetime] = None
+
+
+class JobState(BaseModel):
+    title: str
+    department: str
+    headcount: int
+    status: JobStatus = "Open"
+    jd: str = ""
+    highlights: dict[str, Any] = Field(default_factory=dict)
+    updated_at: datetime
 
 
 class CandidateState(BaseModel):
@@ -59,9 +62,21 @@ class CandidateState(BaseModel):
     email: str
     job_title: str
     stage: PipelineStage
-    notion_url: Optional[str] = None
     score: Optional[int] = Field(default=None, ge=1, le=10)
+    resume_summary: str = ""
+    ai_notes: str = ""
     updated_at: datetime
+
+
+class OfferState(BaseModel):
+    candidate_name: str
+    job_title: str
+    title: str
+    letter_body: str
+    key_terms: list[str] = Field(default_factory=list)
+    salary: str = ""
+    start_date: str = ""
+    created_at: datetime
 
 
 class RuntimeLogEntry(BaseModel):
@@ -73,14 +88,15 @@ class RuntimeLogEntry(BaseModel):
 
 class RuntimeState(BaseModel):
     workspace: WorkspaceState = Field(default_factory=WorkspaceState)
+    jobs: dict[str, JobState] = Field(default_factory=dict)
     candidates: dict[str, CandidateState] = Field(default_factory=dict)
+    offers: list[OfferState] = Field(default_factory=list)
     logs: list[RuntimeLogEntry] = Field(default_factory=list)
 
 
 class OperationResponse(BaseModel):
     operation: str
     summary: str
-    notion_urls: dict[str, str] = Field(default_factory=dict)
     details: dict[str, Any] = Field(default_factory=dict)
     log_output: list[str] = Field(default_factory=list)
     pipeline_counts: dict[str, int] = Field(default_factory=dict)
@@ -90,3 +106,12 @@ class LogsResponse(BaseModel):
     logs: list[RuntimeLogEntry]
     pipeline_counts: dict[str, int]
     workspace: WorkspaceState
+
+
+class CandidatesResponse(BaseModel):
+    candidates: list[CandidateState]
+    pipeline_counts: dict[str, int]
+
+
+class JobsResponse(BaseModel):
+    jobs: list[JobState]

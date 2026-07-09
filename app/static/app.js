@@ -1,16 +1,16 @@
 const pipelineRoot = document.getElementById("pipeline");
 const activityLog = document.getElementById("activityLog");
+const candidateBoard = document.getElementById("candidateBoard");
+const heroStages = document.getElementById("heroStages");
+const heroCandidates = document.getElementById("heroCandidates");
+
+const REFRESH_INTERVAL_MS = 15000;
 
 const stageOrder = ["Applied", "Screening", "Interview", "Offer"];
-const stageMeta = {
-  Applied: { code: "Intake", note: "Fresh inbound candidates" },
-  Screening: { code: "Review", note: "AI fit evaluation in motion" },
-  Interview: { code: "Loop", note: "Team conversation underway" },
-  Offer: { code: "Close", note: "Offer package prepared" },
-};
 
 const state = {
   logs: [],
+  candidates: [],
   pipelineCounts: {
     Applied: 0,
     Screening: 0,
@@ -19,42 +19,68 @@ const state = {
   },
 };
 
-function parsePipelineFromLogs(logs) {
-  for (let index = logs.length - 1; index >= 0; index -= 1) {
-    const message = logs[index]?.message ?? "";
-    const match = message.match(/\[PIPELINE\]\s*(\{.*\})/);
-    if (!match) continue;
-    try {
-      return { ...state.pipelineCounts, ...JSON.parse(match[1]) };
-    } catch {
-      return state.pipelineCounts;
-    }
-  }
-  return state.pipelineCounts;
+function renderStages(root, compact) {
+  if (!root) return;
+  root.innerHTML = "";
+  stageOrder.forEach((stage) => {
+    const cell = document.createElement("article");
+    cell.className = compact ? "hero-stage" : "pipeline-stage";
+    const count = state.pipelineCounts[stage] ?? 0;
+    const value = document.createElement("strong");
+    value.textContent = count;
+    const name = document.createElement("span");
+    name.className = "stage-name";
+    name.textContent = stage;
+    cell.append(value, name);
+    root.appendChild(cell);
+  });
 }
 
-function renderPipeline() {
-  pipelineRoot.innerHTML = "";
-  stageOrder.forEach((stage) => {
-    const card = document.createElement("article");
-    card.className = "pipeline-stage";
-    const count = state.pipelineCounts[stage] ?? 0;
-    const meta = stageMeta[stage];
-    card.innerHTML = `
-      <span class="stage-code">${meta.code}</span>
-      <p class="eyebrow muted">${stage}</p>
-      <strong>${count}</strong>
-      <span class="stage-volume">${count === 1 ? "candidate in stage" : "candidates in stage"}</span>
-      <small class="stage-note">${meta.note}</small>
-    `;
-    pipelineRoot.appendChild(card);
+function candidateRow(candidate) {
+  const row = document.createElement("div");
+  row.className = "candidate-row";
+  row.dataset.stage = candidate.stage;
+  const name = document.createElement("strong");
+  name.textContent = candidate.name;
+  const role = document.createElement("span");
+  role.className = "candidate-role";
+  role.textContent = candidate.job_title;
+  const badge = document.createElement("span");
+  badge.className = "candidate-badge";
+  badge.textContent =
+    candidate.score != null
+      ? `${candidate.stage} ${candidate.score}/10`
+      : candidate.stage;
+  row.append(name, role, badge);
+  return row;
+}
+
+function renderCandidates(root, limit, emptyMessage) {
+  if (!root) return;
+  root.innerHTML = "";
+  if (!state.candidates.length) {
+    const empty = document.createElement("p");
+    empty.className = "candidate-empty";
+    empty.textContent = emptyMessage;
+    root.appendChild(empty);
+    return;
+  }
+  state.candidates.slice(0, limit).forEach((candidate) => {
+    root.appendChild(candidateRow(candidate));
   });
 }
 
 function renderActivity() {
   activityLog.innerHTML = "";
   if (!state.logs.length) {
-    activityLog.innerHTML = '<div class="activity-item"><time>Waiting</time><p>No activity recorded yet.</p></div>';
+    const row = document.createElement("div");
+    row.className = "activity-item";
+    const time = document.createElement("time");
+    time.textContent = "Waiting";
+    const message = document.createElement("p");
+    message.textContent = "No activity recorded yet. Run the demo above.";
+    row.append(time, message);
+    activityLog.appendChild(row);
     return;
   }
   [...state.logs].reverse().forEach((entry) => {
@@ -70,16 +96,33 @@ function renderActivity() {
   });
 }
 
+function renderAll() {
+  renderStages(pipelineRoot, false);
+  renderStages(heroStages, true);
+  renderCandidates(candidateBoard, 8, "No candidates screened yet.");
+  renderCandidates(heroCandidates, 3, "Nothing yet. Run the demo below.");
+  renderActivity();
+}
+
 async function refreshLogs() {
   try {
-    const response = await fetch("/api/logs");
-    const payload = await response.json();
+    const [logsResponse, candidatesResponse] = await Promise.all([
+      fetch("/api/logs"),
+      fetch("/api/candidates"),
+    ]);
+    const payload = await logsResponse.json();
     state.logs = payload.logs ?? [];
-    state.pipelineCounts = parsePipelineFromLogs(state.logs);
-    renderPipeline();
-    renderActivity();
+    if (candidatesResponse.ok) {
+      const candidatesPayload = await candidatesResponse.json();
+      state.candidates = candidatesPayload.candidates ?? [];
+      state.pipelineCounts = {
+        ...state.pipelineCounts,
+        ...(candidatesPayload.pipeline_counts ?? {}),
+      };
+    }
+    renderAll();
   } catch (error) {
-    console.error("Failed to refresh logs", error);
+    console.error("Failed to refresh pipeline data", error);
   }
 }
 
@@ -92,6 +135,7 @@ async function submitJson({ url, data, outputId, button }) {
   const originalLabel = button.textContent;
   button.disabled = true;
   button.textContent = "Working...";
+  output.classList.remove("is-error");
   output.textContent = "Running request...";
 
   try {
@@ -107,6 +151,7 @@ async function submitJson({ url, data, outputId, button }) {
     output.textContent = prettyResult(payload);
     await refreshLogs();
   } catch (error) {
+    output.classList.add("is-error");
     output.textContent = `Error: ${error.message}`;
   } finally {
     button.disabled = false;
@@ -152,4 +197,24 @@ document.getElementById("offerForm").addEventListener("submit", async (event) =>
 
 document.getElementById("refreshLogsButton").addEventListener("click", refreshLogs);
 
+// Scroll reveals, skipped entirely under reduced motion.
+if (window.matchMedia("(prefers-reduced-motion: no-preference)").matches) {
+  const revealables = document.querySelectorAll(".how, .demo, .activity");
+  revealables.forEach((el) => el.classList.add("reveal"));
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.12 }
+  );
+  revealables.forEach((el) => observer.observe(el));
+}
+
+renderAll();
 refreshLogs();
+setInterval(refreshLogs, REFRESH_INTERVAL_MS);
